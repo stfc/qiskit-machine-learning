@@ -21,13 +21,15 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.primitives.base import BaseEstimatorV2
+from qiskit.primitives.base import BaseEstimatorV2, BaseEstimator
 from qiskit.primitives import BaseEstimatorV1
 from qiskit.providers.options import Options
+from qiskit.transpiler.passmanager import BasePassManager
 
 from ..base.base_estimator_gradient import BaseEstimatorGradient
 from ..base.estimator_gradient_result import EstimatorGradientResult
 from ..utils import _make_param_shift_parameter_values
+from ...utils.circuit_id import _circuit_key
 
 
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
@@ -38,7 +40,6 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
     [1] Schuld, M., Bergholm, V., Gogolin, C., Izaac, J., and Killoran, N. Evaluating analytic
     gradients on quantum hardware, `DOI <https://doi.org/10.1103/PhysRevA.99.032331>`_
     """
-
     SUPPORTED_GATES = [
         "x",
         "y",
@@ -56,7 +57,25 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         "rzz",
         "rzx",
     ]
-
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        options: Options | None = None,
+        pass_manager: BasePassManager | None = None,
+    ):
+        r"""
+        Args:
+            estimator: The estimator used to compute the gradients.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting.
+            pass_manager: The pass manager to transpile the circuits if necessary.
+                Defaults to ``None``, as some primitives do not need transpiled circuits.
+        """
+        super().__init__(
+            estimator, options=options, pass_manager=pass_manager
+        )
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -124,18 +143,22 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
             opt = self._get_local_options(options)
 
         elif isinstance(self._estimator, BaseEstimatorV2):
+            circuit_observable_params = []
             if self._pass_manager is None:
                 circs_ = job_circuits
                 observables_ = job_observables
+                for pub in zip(circs_, observables_, job_param_values):
+                    circuit_observable_params.append(pub)
             else:
-                circs_ = self._pass_manager.run(job_circuits)
-                observables_ = [
-                    op.apply_layout(circs_[i].layout) for i, op in enumerate(job_observables)
-                ]
-            # Prepare circuit-observable-parameter tuples (PUBs)
-            circuit_observable_params = []
-            for pub in zip(circs_, observables_, job_param_values):
-                circuit_observable_params.append(pub)
+                for job_circ, job_ob, job_par in zip(job_circuits, job_observables, job_param_values ):
+                    circuit_key = _circuit_key(job_circ)
+                    if circuit_key not in self._isa_circuit_cache:
+                        isa_circ = self._pass_manager.run(job_circ)
+                        self._isa_circuit_cache[circuit_key] = isa_circ
+                    cached_circ = self._isa_circuit_cache[circuit_key]
+                    pub =  (cached_circ, job_ob.apply_layout(cached_circ.layout), job_par)
+                    circuit_observable_params.append(pub)
+                print(self._isa_circuit_cache)
 
             # For BaseEstimatorV2, run the estimator using PUBs and specified precision
             job = self._estimator.run(circuit_observable_params)

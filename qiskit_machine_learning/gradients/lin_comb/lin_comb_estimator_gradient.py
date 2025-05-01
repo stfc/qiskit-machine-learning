@@ -23,7 +23,7 @@ from qiskit.primitives.base import BaseEstimatorV2
 from qiskit.primitives import BaseEstimator, BaseEstimatorV1
 from qiskit.transpiler.passmanager import BasePassManager
 
-from qiskit.primitives.utils import init_observable, _circuit_key
+from qiskit.primitives.utils import init_observable
 from qiskit.providers import Options
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -32,7 +32,7 @@ from ..base.estimator_gradient_result import EstimatorGradientResult
 from ..utils import DerivativeType, _make_lin_comb_gradient_circuit, _make_lin_comb_observables
 
 from ...exceptions import AlgorithmError
-
+from ...utils.circuit_id import _circuit_key
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
     """Compute the gradients of the expectation values.
@@ -199,18 +199,21 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
             opt = self._get_local_options(options)
         elif isinstance(self._estimator, BaseEstimatorV2):
-            if self._pass_manager is None:
-                circs = job_circuits
-                observables = job_observables
-            else:
-                circs = self._pass_manager.run(job_circuits)
-                observables = [
-                    op.apply_layout(circs[i].layout) for i, op in enumerate(job_observables)
-                ]
-            # Prepare circuit-observable-parameter tuples (PUBs)
             circuit_observable_params = []
-            for pub in zip(circs, observables, job_param_values):
-                circuit_observable_params.append(pub)
+            if self._pass_manager is None:
+                circs_ = job_circuits
+                observables_ = job_observables
+                for pub in zip(circs_, observables_, job_param_values):
+                    circuit_observable_params.append(pub)
+            else:
+                for job_circ, job_ob, job_par in zip(job_circuits, job_observables, job_param_values ):
+                    circuit_key = _circuit_key(job_circ)
+                    if circuit_key not in self._isa_circuit_cache:
+                        isa_circ = self._pass_manager.run(job_circ)
+                        self._isa_circuit_cache[circuit_key] = isa_circ
+                    cached_circ = self._isa_circuit_cache[circuit_key]
+                    pub =  (cached_circ, job_ob.apply_layout(cached_circ.layout), job_par)
+                    circuit_observable_params.append(pub)
 
             # For BaseEstimatorV2, run the estimator using PUBs and specified precision
             job = self._estimator.run(circuit_observable_params)
