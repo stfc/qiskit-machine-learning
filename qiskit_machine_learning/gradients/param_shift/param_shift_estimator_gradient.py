@@ -57,25 +57,7 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         "rzz",
         "rzx",
     ]
-    def __init__(
-        self,
-        estimator: BaseEstimator,
-        options: Options | None = None,
-        pass_manager: BasePassManager | None = None,
-    ):
-        r"""
-        Args:
-            estimator: The estimator used to compute the gradients.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting.
-            pass_manager: The pass manager to transpile the circuits if necessary.
-                Defaults to ``None``, as some primitives do not need transpiled circuits.
-        """
-        super().__init__(
-            estimator, options=options, pass_manager=pass_manager
-        )
+    
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
