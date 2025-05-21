@@ -39,6 +39,7 @@ from ..utils import (
     _make_gradient_parameters,
     _make_gradient_parameter_values,
 )
+from ...utils.circuit_id import _circuit_key
 from ...utils.deprecation import issue_deprecation_msg
 from ...algorithm_job import AlgorithmJob
 
@@ -86,7 +87,7 @@ class BaseEstimatorGradient(ABC):
         if options is not None:
             self._default_options.update_options(**options)
         self._derivative_type = derivative_type
-
+        self._isa_circuit_cache: dict[tuple, QuantumCircuit] = {}
         self._gradient_circuit_cache: dict[
             tuple,
             GradientCircuit,
@@ -374,3 +375,37 @@ class BaseEstimatorGradient(ABC):
         opts = copy(self._estimator.options)
         opts.update_options(**options)
         return opts
+
+    def _clear_isa_circuit_cache(self) -> None:
+        """Clear the isa circuit cache.
+        
+        Args:
+            None
+        Returns:
+            None
+        
+        """
+        self._isa_circuit_cache = {}
+
+    def _clear_gradient_circuit_cache(self) -> None:
+        """Clear the gradient circuit cache.
+        
+        Args:
+            None
+        Returns:
+            None
+        
+        """
+        self._gradient_circuit_cache = {}
+
+    def _clear_all_circuit_cache(self) -> None:
+        """Clear both the gradient and isa circuit cache.
+        
+        Args:
+            None
+        Returns:
+            None
+        
+        """
+        self._isa_circuit_cache = {}
+        self._gradient_circuit_cache = {}
