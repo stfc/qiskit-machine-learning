@@ -21,6 +21,9 @@ on the Qiskit software development kit. As of version `0.7`, Qiskit Machine Lear
 by IBM and the [Hartree Center](https://www.hartree.stfc.ac.uk/), part of the UK Science and 
 Technologies Facilities Council (STFC).
 
+A description of the library structure, features, and domain-specific applications, can be found 
+in a dedicated [ArXiv paper](https://arxiv.org/abs/2505.17756).
+
 The Qiskit Machine Learning framework aims to be:
 
 * **User-friendly**, allowing users to quickly and easily prototype quantum machine learning models without 
@@ -46,9 +49,9 @@ to solve classification or regression problems respectively. It is also compatib
 
 Qiskit Machine Learning defines a generic interface for neural networks, implemented by two core (derived) primitives:
 
-- **[`EstimatorQNN`](https://qiskit-community.github.io/qiskit-machine-learning/stubs/qiskit_machine_learning.neural_networks.EstimatorQNN.html):** Leverages the [`Estimator`](https://docs.quantum.ibm.com/api/qiskit/qiskit.primitives.BaseEstimator) primitive, combining parametrized quantum circuits with quantum mechanical observables. The output is the expected value of the observable.
+- **[`EstimatorQNN`](https://qiskit-community.github.io/qiskit-machine-learning/stubs/qiskit_machine_learning.neural_networks.EstimatorQNN.html):** Leverages the [`Estimator`](https://quantum.cloud.ibm.com/docs/api/qiskit/1.4/qiskit.primitives.BaseEstimator) primitive, combining parametrized quantum circuits with quantum mechanical observables. The output is the expected value of the observable.
   
-- **[`SamplerQNN`](https://qiskit-community.github.io/qiskit-machine-learning/stubs/qiskit_machine_learning.neural_networks.SamplerQNN.html):** Leverages the [`Sampler`](https://docs.quantum.ibm.com/api/qiskit/qiskit.primitives.BaseSampler) primitive, translating bit-string counts into the desired outputs.
+- **[`SamplerQNN`](https://qiskit-community.github.io/qiskit-machine-learning/stubs/qiskit_machine_learning.neural_networks.SamplerQNN.html):** Leverages the [`Sampler`](https://quantum.cloud.ibm.com/docs/api/qiskit/1.4/qiskit.primitives.BaseSampler) primitive, translating bit-string counts into the desired outputs.
 
 To train and use neural networks, Qiskit Machine Learning provides learning algorithms such as the [`NeuralNetworkClassifier`](https://qiskit-community.github.io/qiskit-machine-learning/stubs/qiskit_machine_learning.algorithms.NeuralNetworkClassifier.html#qiskit_machine_learning.algorithms.NeuralNetworkClassifier) 
 and [`NeuralNetworkRegressor`](https://qiskit-community.github.io/qiskit-machine-learning/stubs/qiskit_machine_learning.algorithms.NeuralNetworkRegressor.html#qiskit_machine_learning.algorithms.NeuralNetworkRegressor). 
@@ -102,7 +105,7 @@ For more details on how to do so and much more, follow the instructions in the
 > Learning, Qiskit `1.0` or above will be required. If you have a pre-`1.0` version of Qiskit 
 > installed in your environment (however it was installed), you should upgrade to `1.x` to 
 > continue using the latest features. You may refer to the 
-> official [Qiskit 1.0 Migration Guide](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0) 
+> official [Qiskit 1.0 Migration Guide](https://quantum.cloud.ibm.com/docs/migration-guides/qiskit-1.0) 
 > for detailed instructions and examples on how to upgrade Qiskit.
 
 ----------------------------------------------------------------------------------------------------
@@ -188,8 +191,9 @@ work of
 who contribute to the project at different levels.
 
 ## How can I cite Qiskit Machine Learning?
-If you use Qiskit, please cite as per the provided
-[BibTeX file](https://github.com/Qiskit/qiskit/blob/main/CITATION.bib).
+If you use Qiskit Machine Learning in your work, please cite the "overview" paper to 
+support the continued development and visibility of the library. The BibTeX citation handle can be found in the 
+[`CITATION.bib`](./CITATION.bib) file.
 
 ## License
 

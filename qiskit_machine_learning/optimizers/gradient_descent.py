@@ -28,7 +28,7 @@ CALLBACK = Callable[[int, np.ndarray, float, SupportsFloat], None]
 class GradientDescentState(OptimizerState):
     """State of :class:`~.GradientDescent`.
 
-    Dataclass with all the information of an optimizer plus the learning_rate and the stepsize.
+    Dataclass with all the information of an optimizer plus the learning_rate and the step-size.
     """
 
     stepsize: float | None
@@ -104,7 +104,7 @@ class GradientDescent(SteppableOptimizer):
                 "of {result.fun} using {result.nfev} evaluations.")
 
         An example where the learning rate is an iterator and we supply the analytic gradient.
-        Note how much faster this convergences (i.e. less ``nfev``) compared to the previous
+        Note how much faster this converges (i.e. less ``nfev``) compared to the previous
         example.
 
         .. code-block:: python
@@ -137,7 +137,7 @@ class GradientDescent(SteppableOptimizer):
             "of {result.fun} using {result.nfev} evaluations.")
 
 
-    An other example where the evaluation of the function has a chance of failing. The user, with
+    Another example where the evaluation of the function has a chance of failing. The user, with
     specific knowledge about his function can catch this errors and handle them before passing the
     result to the optimizer.
 
@@ -243,7 +243,7 @@ class GradientDescent(SteppableOptimizer):
     def tol(self) -> float:
         """Returns the tolerance of the optimizer.
 
-        Any step with smaller stepsize than this value will stop the optimization."""
+        Any step with smaller step-size than this value will stop the optimization."""
         return self._tol
 
     @tol.setter

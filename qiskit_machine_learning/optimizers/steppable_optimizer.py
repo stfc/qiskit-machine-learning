@@ -206,7 +206,7 @@ class SteppableOptimizer(Optimizer):
         This method asks the optimizer which are the next points to evaluate.
         These points can, e.g., correspond to function values and/or its derivative.
         It may also correspond to variables that let the user infer which points to evaluate.
-        It is the first method inside of a :meth:`~.step` in the optimization process.
+        It is the first method inside a :meth:`~.step` in the optimization process.
 
         Returns:
             An object containing the data needed to make the function evaluation to advance the
@@ -289,7 +289,7 @@ class SteppableOptimizer(Optimizer):
     ) -> OptimizerResult:
         """Minimizes the function.
 
-        For well behaved functions the user can call this method to minimize a function.
+        For well-behaved functions the user can call this method to minimize a function.
         If the user wants more control on how to evaluate the function a custom loop can be
         created using :meth:`~.ask` and :meth:`~.tell` and evaluating the function manually.
 
