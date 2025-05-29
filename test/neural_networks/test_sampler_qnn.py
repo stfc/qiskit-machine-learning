@@ -425,3 +425,74 @@ class TestSamplerQNN(QiskitMachineLearningTestCase):
             np.testing.assert_array_almost_equal(backward_qc[0], backward_qnn_qc[0])
             # Test if weights grad is identical
             np.testing.assert_array_almost_equal(backward_qc[1], backward_qnn_qc[1])
+
+    def test_forward_backward_with_qc_input(self):
+        """SamplerQNN should accept a single QuantumCircuit as input_data."""
+        # ansatz circuit (the QNN “circuit”)
+        ansatz = QuantumCircuit(1)
+        ansatz.h(0)
+
+        # a separate input circuit to be composed
+        qc_data = QuantumCircuit(1)
+        qc_data.x(0)
+        qc_data.barrier()
+
+        # build QNN with ansatz only
+        qnn = SamplerQNN(circuit=ansatz)
+
+        # forward on a single circuit
+        result = qnn.forward(qc_data, None)
+        # expect one sample, shape = (1, *output_shape)
+        self.assertEqual(result.shape, (1, *qnn.output_shape))
+
+        # backward should return (None, None) since there are no params
+        inp_grad, w_grad = qnn.backward(qc_data, None)
+        self.assertIsNone(inp_grad)
+        self.assertIsNone(w_grad)
+
+    def test_forward_backward_with_qc_list_and_ansatz(self):
+        """SamplerQNN accepts a list of QuantumCircuits as input_data and composes each with an ansatz having weight params."""
+
+        # prepare two simple 1-qubit input circuits
+        qc1 = QuantumCircuit(1)
+        qc1.h(0)
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        input_circuits = [qc1, qc2]
+
+        # prepare a 1-qubit ansatz with one parameter
+        theta = Parameter("θ")
+        ansatz = QuantumCircuit(1)
+        ansatz.ry(theta, 0)
+        ansatz.measure_all()
+
+        # build the QNN: no input_params, one weight_param
+        qnn = SamplerQNN(
+            circuit=ansatz,
+            input_params=None,
+            weight_params=[theta],
+            interpret=None,
+            output_shape=2,          # e.g. 2 outcomes
+            sampler=self.sampler,    # reuse the default sampler from setUp
+            gradient=None,
+            sparse=False,
+            input_gradients=False,
+        )
+
+        # a single weight value
+        weights = [0.5]
+
+        # forward on the list of circuits
+        result = qnn.forward(input_circuits, weights)
+        # expect batch size = 2
+        self.assertEqual(result.shape, (2, *qnn.output_shape))
+
+        # backward without input gradients: only weight gradients
+        input_grad, weight_grad = qnn.backward(input_circuits, weights)
+        self.assertIsNone(input_grad)
+        # weight_grad should have shape (2, *output_shape, num_weights)
+        self.assertEqual(
+            weight_grad.shape,
+            (2, *qnn.output_shape, qnn.num_weights),
+        )
+
