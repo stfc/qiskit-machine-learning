@@ -472,8 +472,8 @@ class TestSamplerQNN(QiskitMachineLearningTestCase):
             input_params=None,
             weight_params=[theta],
             interpret=None,
-            output_shape=2,          # e.g. 2 outcomes
-            sampler=self.sampler,    # reuse the default sampler from setUp
+            output_shape=2,  # e.g. 2 outcomes
+            sampler=self.sampler,  # reuse the default sampler from setUp
             gradient=None,
             sparse=False,
             input_gradients=False,
@@ -495,4 +495,3 @@ class TestSamplerQNN(QiskitMachineLearningTestCase):
             weight_grad.shape,
             (2, *qnn.output_shape, qnn.num_weights),
         )
-

@@ -165,7 +165,7 @@ class NeuralNetwork(ABC):
                 circuit_.compose(input_circuit, inplace=True)
                 circuit_.compose(ansatz, inplace=True)
         return circuit_
-    
+
     def _validate_input(
         self,
         input_data: float | QuantumCircuit | list[QuantumCircuit] | list[float] | np.ndarray | None,
@@ -177,19 +177,24 @@ class NeuralNetwork(ABC):
     ]:
         if input_data is None:
             return None, None, None
+
         elif isinstance(input_data, QuantumCircuit):
             if input_params is None:
                 return input_data, (len(input_data),), input_params
             else:
-                input_ = np.array(input_params)
-                input_ = input_.reshape((1, 1))
+                input_ = np.asarray(input_params)
+                assert input_.shape[0] == 1, f"{input_.shape[0]=}, {input_=}"
+                # input_ = input_.reshape((len(input_data), 1))
                 return [input_data], input_.shape, input_
+
         if type(input_data) is list:
             if isinstance(input_data[0], QuantumCircuit):
                 if input_params is None:
                     return input_data, (len(input_data),), input_params
                 else:
-                    input_ = np.array(input_params)
+                    input_ = np.asarray(input_params)
+                    assert len(input_) == len(input_data), f"{input_=}, {input_data=}"
+
             else:
                 input_ = np.array(input_data)
         else:
@@ -218,7 +223,7 @@ class NeuralNetwork(ABC):
             return input_data, shape, input_
 
         return input_, shape, input_params
-    
+
     def _preprocess_input(
         self,
         input_data: np.ndarray | list[QuantumCircuit] | QuantumCircuit | None,
@@ -249,7 +254,7 @@ class NeuralNetwork(ABC):
                 parameter_values, num_samples = self._preprocess_forward(input_data, weights)
                 _circuits = [ansatz] * output_shape * num_samples
         return _circuits, parameter_values, num_samples, is_circ_input
-    
+
     def _preprocess_forward(
         self,
         input_data: np.ndarray | list[QuantumCircuit] | QuantumCircuit | None,
@@ -259,12 +264,19 @@ class NeuralNetwork(ABC):
         """
         Pre-processing during forward pass of the network for the primitive-based networks.
         """
+        print(weights, input_data)
         if input_data is not None:
-            input_data = np.array(input_data)
             num_samples = input_data.shape[0]
             if weights is not None:
-                weights = np.broadcast_to(weights, (num_samples, len(weights)))
-                parameters = np.concatenate((input_data, weights), axis=1)
+
+                print(f"{weights.ndim=}, {input_data.ndim=}, {num_samples=}")
+                if input_data.ndim == 1:
+                    parameters = np.concatenate((input_data, weights), axis=0)
+                    parameters = np.tile(parameters, num_samples)
+                else:
+                    weights = np.broadcast_to(weights, (num_samples, len(weights)))
+                    parameters = np.concatenate((input_data, weights), axis=1)
+                print(parameters)
             else:
                 parameters = input_data
         else:
@@ -273,6 +285,8 @@ class NeuralNetwork(ABC):
             else:
                 # no input, no weights, just execute circuit once
                 parameters = np.asarray(num_samples * [])
+
+
         return parameters, num_samples
 
     def _validate_weights(

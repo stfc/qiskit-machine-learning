@@ -19,33 +19,36 @@ from test import QiskitMachineLearningTestCase
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 from qiskit_machine_learning.exceptions import QiskitMachineLearningError
 from qiskit_machine_learning.neural_networks import NeuralNetwork
 
+
 class _NeuralNetwork(NeuralNetwork):
     """Dummy implementation to test the abstract neural network class."""
+
     def __init__(
-            self, 
-            num_inputs, 
-            num_weights, 
-            sparse, 
-            output_shape, 
-            input_gradients = False, 
-            pass_manager = None
+        self,
+        num_inputs,
+        num_weights,
+        sparse,
+        output_shape,
+        input_gradients=False,
+        pass_manager=None,
     ) -> None:
-        self.pass_manager= pass_manager
+        self.pass_manager = pass_manager
         super().__init__(
-            num_inputs = num_inputs,
-            num_weights = num_weights,
-            sparse = sparse,
-            output_shape = output_shape,
-            input_gradients = input_gradients,
-            pass_manager= pass_manager,
+            num_inputs=num_inputs,
+            num_weights=num_weights,
+            sparse=sparse,
+            output_shape=output_shape,
+            input_gradients=input_gradients,
+            pass_manager=pass_manager,
         )
+
     def _forward(self, input_data, weights, input_params=None):
         """Expects as input either None, or a 2-dim array and returns."""
 
@@ -71,12 +74,13 @@ class _NeuralNetwork(NeuralNetwork):
 @ddt
 class TestNeuralNetwork(QiskitMachineLearningTestCase):
     """Neural Network Tests."""
+
     def __init__(
         self,
         TestCase,
     ):
         self.backend = GenericBackendV2(num_qubits=3, seed=123)
-        self.pass_manager = generate_preset_pass_manager(backend=self.backend, optimization_level=0) 
+        self.pass_manager = generate_preset_pass_manager(backend=self.backend, optimization_level=0)
         super().__init__(TestCase)
 
     @staticmethod
@@ -267,7 +271,9 @@ class TestNeuralNetwork(QiskitMachineLearningTestCase):
         """Preprocess None input: repeats ansatz and empty params."""
         network = _NeuralNetwork(0, 0, True, 1)
         ansatz = QuantumCircuit(1)
-        circs, vals, n, is_circ = network._preprocess_input(None, None, None, ansatz, output_shape=4)
+        circs, vals, n, is_circ = network._preprocess_input(
+            None, None, None, ansatz, output_shape=4
+        )
         self.assertFalse(is_circ)
         self.assertEqual(n, 1)
         self.assertEqual(len(circs), 4)
@@ -279,7 +285,9 @@ class TestNeuralNetwork(QiskitMachineLearningTestCase):
         network = _NeuralNetwork(2, 0, True, 1)
         ansatz = QuantumCircuit(2)
         batch = [[0.1, 0.2], [0.3, 0.4]]
-        circs, vals, n, is_circ = network._preprocess_input(batch, None, None, ansatz, output_shape=3)
+        circs, vals, n, is_circ = network._preprocess_input(
+            batch, None, None, ansatz, output_shape=3
+        )
         self.assertFalse(is_circ)
         self.assertEqual(n, 2)
         self.assertEqual(len(circs), 6)
@@ -301,11 +309,40 @@ class TestNeuralNetwork(QiskitMachineLearningTestCase):
         network = _NeuralNetwork(0, 1, True, 1)
         ansatz = QuantumCircuit(1)
         qc1, qc2 = QuantumCircuit(1), QuantumCircuit(1)
-        circs, vals, n, is_circ = network._preprocess_input([qc1, qc2], None, None, ansatz, output_shape=3)
+        circs, vals, n, is_circ = network._preprocess_input(
+            [qc1, qc2], None, None, ansatz, output_shape=3
+        )
         self.assertTrue(is_circ)
         self.assertEqual(n, 2)
         self.assertEqual(len(circs), 6)
         self.assertTrue(all(isinstance(c, QuantumCircuit) for c in circs))
+
+    def test_preprocess_input_list_circuit_with_parameters(self):
+        """Preprocess a list of parameterized QuantumCircuit inputs."""
+        network = _NeuralNetwork(0, 2, True, 1)
+
+        qc1, qc2 = QuantumCircuit(1), QuantumCircuit(1)
+        params = [Parameter("p0"), Parameter("p1")]
+
+        qc1.ry(params[0], 0)
+        qc1.rx(params[1], 0)
+        qc2.ry(params[0], 0)
+        qc2.rx(params[1], 0)
+
+        ansatz = QuantumCircuit(1)
+        ansatz.ry(params[0], 0)
+        ansatz.rx(params[1], 0)
+
+        circuits, parameter_values, num_samples, is_circ_input = network._preprocess_input(
+            [qc1, qc2], [-5, -6], [[1, 2], [3, 4]], ansatz, output_shape=3
+        )
+
+        self.assertTrue(is_circ_input)
+        self.assertTrue(np.all(parameter_values == [[1, 2, -5, -6], [3, 4, -5, -6]]))
+        self.assertEqual(num_samples, 2)
+        self.assertEqual(len(circuits), 6)  # _circuits = [ansatz] * output_shape * num_samples
+        self.assertTrue(all(isinstance(c, QuantumCircuit) for c in circuits))
+
 
 if __name__ == "__main__":
     unittest.main()
