@@ -28,7 +28,7 @@ from ..base.base_sampler_gradient import BaseSamplerGradient
 from ..base.sampler_gradient_result import SamplerGradientResult
 from ..utils import _make_param_shift_parameter_values
 from ...exceptions import AlgorithmError
-
+from ...utils.circuit_id import _circuit_key
 
 class ParamShiftSamplerGradient(BaseSamplerGradient):
     """
@@ -100,13 +100,24 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         if isinstance(self._sampler, BaseSamplerV1):
             job = self._sampler.run(job_circuits, job_param_values, **options)
         elif isinstance(self._sampler, BaseSamplerV2):
+            circ_params = []
             if self._pass_manager is None:
-                _circs = job_circuits
+                circs_ = job_circuits
                 _len_quasi_dist = 2 ** job_circuits[0].num_qubits
+                for pub in zip(circs_, job_param_values):
+                    circ_params.append(pub)
             else:
-                _circs = self._pass_manager.run(job_circuits)
-                _len_quasi_dist = 2 ** _circs[0].layout._input_qubit_count
-            circ_params = [(_circs[i], job_param_values[i]) for i in range(len(job_param_values))]
+                for job_circ, job_par in zip(job_circuits, job_param_values):
+                    circuit_key = _circuit_key(job_circ)
+                    if circuit_key not in self._isa_circuit_cache:
+                        isa_circ = self._pass_manager.run(job_circ)
+                        self._isa_circuit_cache[circuit_key] = isa_circ
+                    cached_circ = self._isa_circuit_cache[circuit_key]
+                    pub =  (cached_circ, job_par)
+                    circ_params.append(pub)
+                first_isa_key = next(iter(self._isa_circuit_cache))
+                isa_circ = self._isa_circuit_cache[first_isa_key]
+                _len_quasi_dist = 2 ** isa_circ.layout._input_qubit_count
             job = self._sampler.run(circ_params)
         else:
             raise AlgorithmError(

@@ -70,6 +70,7 @@ class BaseSamplerGradient(ABC):
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
+        self._isa_circuit_cache: dict[tuple, QuantumCircuit] = {}
         self._gradient_circuit_cache: dict[tuple, GradientCircuit] = {}
 
     def run(
@@ -314,3 +315,37 @@ class BaseSamplerGradient(ABC):
         opts = copy(self._sampler.options)
         opts.update_options(**options)
         return opts
+
+    def _clear_isa_circuit_cache(self) -> None:
+        """Clear the isa circuit cache.
+        
+        Args:
+            None
+        Returns:
+            None
+        
+        """
+        self._isa_circuit_cache = {}
+
+    def _clear_gradient_circuit_cache(self) -> None:
+        """Clear the gradient circuit cache.
+        
+        Args:
+            None
+        Returns:
+            None
+        
+        """
+        self._gradient_circuit_cache = {}
+
+    def _clear_all_circuit_cache(self) -> None:
+        """Clear both the gradient and isa circuit cache.
+        
+        Args:
+            None
+        Returns:
+            None
+        
+        """
+        self._isa_circuit_cache = {}
+        self._gradient_circuit_cache = {}
