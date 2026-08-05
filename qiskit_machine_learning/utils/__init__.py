@@ -34,6 +34,7 @@ from .algorithm_globals import algorithm_globals
 from .validate_initial_point import validate_initial_point
 from .validate_bounds import validate_bounds
 from .circuit_hash import circuit_cache_key
+from .data_batching import DataBatcher
 
 __all__ = [
     "derive_num_qubits_feature_map_ansatz",
@@ -41,4 +42,5 @@ __all__ = [
     "validate_initial_point",
     "validate_bounds",
     "circuit_cache_key",
+    "DataBatcher"
 ]

@@ -14,7 +14,7 @@
 """Kernel Loss utilities"""
 
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import Sequence, Optional
 
 import numpy as np
 from sklearn.svm import SVC, SVR
@@ -22,6 +22,7 @@ from sklearn.svm import SVC, SVR
 # Prevent circular dependencies caused from type checking
 from ...kernels import TrainableKernel
 
+from qiskit_machine_learning.utils.data_batching import DataBatcher
 
 class KernelLoss(ABC):
     """
@@ -126,6 +127,123 @@ class SVCLoss(KernelLoss):
         loss = np.sum(np.abs(dual_coefs)) - (0.5 * (dual_coefs.T @ kmatrix @ dual_coefs))
 
         return loss
+    
+
+class BatchedSVCLoss(SVCLoss):
+    r"""
+    This class provides a kernel loss function for classification tasks by fitting an ``SVC`` model
+    from scikit-learn, extended for use with batches. Given training samples, :math:`x_{i}`, with binary labels, :math:`y_{i}`,
+    and a kernel, :math:`K_{θ}`, parameterized by values, :math:`θ`, the loss is defined as:
+
+    .. math::
+
+        SVCLoss = \sum_{i} a_i - 0.5 \sum_{i,j} a_i a_j y_{i} y_{j} K_θ(x_i, x_j)
+
+    where :math:`a_i` are the optimal Lagrange multipliers found by solving the standard SVM
+    quadratic program. Note that the hyper-parameter ``C`` for the soft-margin penalty can be
+    specified through the keyword args.
+
+    Minimizing this loss over the parameters, :math:`θ`, of the kernel is equivalent to maximizing a
+    weighted kernel alignment, which in turn yields the smallest upper bound to the SVM
+    generalization error for a given parameterization.
+
+    See https://arxiv.org/abs/2105.03406 for further details.
+    """
+
+    def __init__(
+        self,
+        data: np.ndarray,
+        labels: np.ndarray,
+        sub_kernel_size: Optional[int] = None,
+        minibatch_size: Optional[int] = 1,
+        shuffle: bool = False,
+        balanced_batch: bool = False,
+        keep_ratio: bool = True,
+        encoder=None,
+        **kwargs,
+    ):
+        """
+        Args:
+            data (np.ndarray): The data to evaluate the loss on.
+            labels (np.ndarray): The corresponding labels for the data.
+            sub_kernel_size (int, optional): The size of the sub-kernel batches to split the data into. If not provided,
+                the entire data set is used in a single batch.
+            shuffle (bool, optional): Whether to shuffle the data before splitting into batches. Default is False.
+            balanced_batch (bool, optional): Whether to use balanced or imbalanced batching. Default is False.
+            encoder (torch.nn): An instance to optionally reduce dimension before calculating loss
+            **kwargs: Arbitrary keyword arguments to pass to SVC constructor within
+                      SVCLoss evaluation.
+        """
+        super().__init__(**kwargs)
+        # Split data into batches
+        self.sub_kernel_size = sub_kernel_size
+        bg = DataBatcher(data, labels)
+        self.minibatch_size = minibatch_size
+        if self.sub_kernel_size == None:
+            self.batches = [data, labels]
+        elif balanced_batch:
+            self.batches = bg.balanced_batches(sub_kernel_size, shuffle=shuffle)
+        else:
+            self.batches = bg.imbalanced_batches(
+                sub_kernel_size, keep_ratio=keep_ratio, shuffle=shuffle
+            )
+
+        self.idx = 0
+        self.epoch = 0
+        self.encoder = encoder
+        self.loss_arr = []
+
+    def evaluate(
+        self,
+        parameters: Sequence[float],
+        quantum_kernel: TrainableKernel,
+        data: np.ndarray,
+        labels: np.ndarray,
+    ) -> float:
+        """
+        Wrapper function for loss evaluation with batches of data. If sub_kernel_size is None, it will execute SVCLoss() on full dataset.
+
+        Args:
+            parameter_values (Sequence[float]): The parameter values to evaluate the loss with.
+            quantum_kernel (TrainableKernel): The quantum kernel to use for evaluation.
+        Returns:
+            loss (float): the loss value for the given parameters and quantum kernel.
+        """
+        if self.sub_kernel_size == None:
+            if type(self.encoder) != type(None):
+                weights = parameters[: self.encoder.num_weights]
+                variational_params = parameters[self.encoder.num_weights :]
+                self.encoder.set_weights(weights)
+                encoded_data = self.encoder.encode(data)
+                return super().evaluate(variational_params, quantum_kernel, encoded_data, labels)
+            else:
+                loss = super().evaluate(parameters, quantum_kernel, data, labels)
+                self.loss_arr.append(loss)
+                return loss
+
+        if self.idx + self.minibatch_size > len(self.batches):
+            self.idx = 0
+            self.epoch += 1
+
+        mini_batch = self.batches[self.idx : self.idx + self.minibatch_size]
+        # Evaluate the loss for each batch and accumulate the total loss
+        total_loss = 0
+        i = self.idx
+        for batch_data, batch_labels in mini_batch:
+            if type(self.encoder) != type(None):
+                weights = parameters[: self.encoder.num_weights]
+                variational_params = parameters[self.encoder.num_weights :]
+                self.encoder.set_weights(weights)
+                batch_data = self.encoder.encode(batch_data)
+            else:
+                variational_params = parameters
+            loss = super().evaluate(variational_params, quantum_kernel, batch_data, batch_labels)
+            total_loss += loss
+            i += 1
+        self.idx += self.minibatch_size
+        self.loss_arr.append(total_loss / self.minibatch_size)
+        param_loss = total_loss / self.minibatch_size
+        return param_loss
 
 
 class SVRLoss(KernelLoss):
