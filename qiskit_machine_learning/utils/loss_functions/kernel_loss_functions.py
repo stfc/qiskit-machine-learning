@@ -169,7 +169,7 @@ class BatchedSubKernelSVCLoss(SVCLoss):
         self.sub_kernel_size = sub_kernel_size
         self.batch_size = batch_size
         self.encoder = encoder
-        self.loss_arr = []
+        self.loss_arr: list[float] = []
         self.data_idxs = list(range(len(data)))
 
         self.unique_labels, self.label_counts = np.unique(labels, return_counts=True)
@@ -250,7 +250,7 @@ class BatchedSubKernelSVCLoss(SVCLoss):
         subkernel_batches = self._batch_subkernels()
 
         # Evaluate the loss for each batch and accumulate the total loss
-        total_loss = 0
+        total_loss = 0.0
 
         for subkernel_data, subkernel_labels in subkernel_batches:
             if self.encoder is not None:
