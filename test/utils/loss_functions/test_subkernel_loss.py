@@ -13,7 +13,6 @@
 
 """Test batched sub-kernel loss function."""
 
-
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -25,6 +24,7 @@ from qiskit_machine_learning.utils.loss_functions.kernel_loss_functions import (
     BatchedSubKernelSVCLoss,
     SVCLoss,
 )
+
 
 class TestSubKernelLossFunctions(QiskitMachineLearningTestCase):
     """Test batched sub-kernel loss function."""
@@ -51,32 +51,19 @@ class TestSubKernelLossFunctions(QiskitMachineLearningTestCase):
 
     def test_sample_counts_preserve_ratio(self):
         """Test sample counts preserve the class ratio."""
-        loss = BatchedSubKernelSVCLoss(
-            self.data,
-            self.labels,
-            sub_kernel_size=5
-        )
+        loss = BatchedSubKernelSVCLoss(self.data, self.labels, sub_kernel_size=5)
         np.testing.assert_array_equal(loss.sample_counts, [3, 2])
-
 
     def test_sample_counts_round(self):
         """Test sample counts are rounded correctly."""
-        loss = BatchedSubKernelSVCLoss(
-            self.data,
-            self.labels,
-            sub_kernel_size=6
-        )
+        loss = BatchedSubKernelSVCLoss(self.data, self.labels, sub_kernel_size=6)
         np.testing.assert_array_equal(loss.sample_counts, [4, 2])
 
     def test_sample_counts_clip(self):
         """Test sample counts are clipped to include both classes."""
         labels = np.array([0] * 9 + [1])
 
-        loss = BatchedSubKernelSVCLoss(
-            self.data,
-            labels,
-            sub_kernel_size=2
-        )
+        loss = BatchedSubKernelSVCLoss(self.data, labels, sub_kernel_size=2)
 
         np.testing.assert_array_equal(loss.sample_counts, [1, 1])
 
@@ -99,7 +86,6 @@ class TestSubKernelLossFunctions(QiskitMachineLearningTestCase):
             self.assertEqual(np.sum(labels == 1), 2)
             self.assertEqual(len(np.unique(data)), 5)
 
-
     def test_unique_sampling_without_replacement(self):
         """Test samples are unique."""
         loss = BatchedSubKernelSVCLoss(
@@ -111,9 +97,7 @@ class TestSubKernelLossFunctions(QiskitMachineLearningTestCase):
 
         subkernels = loss._batch_subkernels()
 
-        sampled = np.concatenate(
-            [subkernel_data for subkernel_data, _ in subkernels]
-        )
+        sampled = np.concatenate([subkernel_data for subkernel_data, _ in subkernels])
 
         self.assertEqual(len(np.unique(sampled, axis=0)), 10)
 
@@ -137,7 +121,6 @@ class TestSubKernelLossFunctions(QiskitMachineLearningTestCase):
         self.assertEqual(len(loss.unused_idxs[0]), 0)
         self.assertEqual(len(loss.unused_idxs[1]), 2)
 
-
     def test_batched_evaluate_returns_average_loss(self):
         """Test batched evaluation returns the average loss."""
         loss = BatchedSubKernelSVCLoss(
@@ -150,11 +133,9 @@ class TestSubKernelLossFunctions(QiskitMachineLearningTestCase):
         batch_1 = (self.data[:4], np.array([0, 0, 1, 1]))
         batch_2 = (self.data[4:8], np.array([0, 0, 1, 1]))
 
-        loss._batch_subkernels = MagicMock(
-            return_value=[batch_1, batch_2]
-        )
+        loss._batch_subkernels = MagicMock(return_value=[batch_1, batch_2])
 
-        with patch.object(SVCLoss,"evaluate", side_effect=[1.0, 3.0]) as mock_evaluate:
+        with patch.object(SVCLoss, "evaluate", side_effect=[1.0, 3.0]) as mock_evaluate:
             result = loss.evaluate(
                 np.array([0.1, 0.2]),
                 MagicMock(),
@@ -165,6 +146,7 @@ class TestSubKernelLossFunctions(QiskitMachineLearningTestCase):
         self.assertEqual(result, 2.0)
         self.assertEqual(loss.loss_arr, [2.0])
         self.assertEqual(mock_evaluate.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

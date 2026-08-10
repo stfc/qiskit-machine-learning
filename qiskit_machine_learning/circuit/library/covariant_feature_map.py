@@ -17,6 +17,7 @@ from typing import Callable, Union, List, Dict, Any
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
+
 class CovariantFeatureMap(QuantumCircuit):
     """The Covariant Feature Map circuit.
 
@@ -48,18 +49,16 @@ class CovariantFeatureMap(QuantumCircuit):
         Args:
             feature_dimension (int): The number of features.
             entanglement (str, List, Callable): Specifies the entanglement scheme.
-            include_training_parameters (bool): If True, includes trainable parameters, 
+            include_training_parameters (bool): If True, includes trainable parameters,
             otherwise excludes them.
 
         Returns:
             None
         """
         if (feature_dimension % 2) != 0:
-            raise ValueError(
-                """
+            raise ValueError("""
                 Covariant feature map requires an even number of input features.
-                """
-            )
+                """)
         self.feature_dimension = feature_dimension
         self.entanglement = entanglement
         self.include_training_parameters = include_training_parameters
@@ -91,7 +90,7 @@ class CovariantFeatureMap(QuantumCircuit):
         input_params = ParameterVector("x_par", self.feature_dimension)
 
         if self.include_training_parameters:
-            training_params = ParameterVector("\u03B8_par", self.num_qubits)
+            training_params = ParameterVector("\u03b8_par", self.num_qubits)
             # Create an initial rotation layer of trainable parameters
             for i in range(self.num_qubits):
                 self.ry(training_params[i], self.qubits[i])

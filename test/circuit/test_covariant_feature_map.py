@@ -16,8 +16,8 @@
 from test import QiskitMachineLearningTestCase
 from qiskit_machine_learning.circuit.library import CovariantFeatureMap
 
-class TestCovariantFeatureMap(QiskitMachineLearningTestCase):
 
+class TestCovariantFeatureMap(QiskitMachineLearningTestCase):
     """Test the ``CovariantFeatureMap`` circuit."""
 
     def test_construction_with_training_parameters(self):
@@ -49,7 +49,6 @@ class TestCovariantFeatureMap(QiskitMachineLearningTestCase):
             self.assertEqual(len(circuit.input_parameters), 6)
             self.assertEqual(len(circuit.training_parameters), 0)
             self.assertEqual(circuit.num_parameters, 6)
-
 
     def test_construction_fails(self):
         """Test invalid construction."""

@@ -22,6 +22,7 @@ from sklearn.svm import SVC, SVR
 # Prevent circular dependencies caused from type checking
 from ...kernels import TrainableKernel
 
+
 class KernelLoss(ABC):
     """
     Abstract base class for computing the loss of a kernel function.
@@ -132,11 +133,11 @@ class BatchedSubKernelSVCLoss(SVCLoss):
     This class evaluates an average SVC loss over batches of randomly sampled sub-kernels.
 
     Each evaluation samples ``batch_size`` number of sub-kernels with each sub-kernel containing
-    ``sub_kernel_size`` number of data points. Each sub-kernel aims to preserve the same class 
-    ratio as the full dataset while still ensuring each class is represented within a kernel at 
-    all times. Data points are sampled without replacement within each class group seperately and 
-    once all data points have been sampled within an indiviudal group then that individual group 
-    is reset.    
+    ``sub_kernel_size`` number of data points. Each sub-kernel aims to preserve the same class
+    ratio as the full dataset while still ensuring each class is represented within a kernel at
+    all times. Data points are sampled without replacement within each class group seperately and
+    once all data points have been sampled within an indiviudal group then that individual group
+    is reset.
 
     See https://arxiv.org/abs/2401.02879 for further details.
     """
@@ -154,7 +155,7 @@ class BatchedSubKernelSVCLoss(SVCLoss):
         Args:
             data (np.ndarray): The data to evaluate the loss on.
             labels (np.ndarray): The corresponding labels for the data.
-            sub_kernel_size (int, optional): The size of the sub-kernel batches to split the data into. 
+            sub_kernel_size (int, optional): The size of the sub-kernel batches to split the data into.
                 If not provided, the entire data set is used in a single batch.
             batch_size (int, optional): The number of sub-kernels per evaluation.
             encoder (torch.nn): An instance to optionally reduce dimension before calculating loss
@@ -163,8 +164,8 @@ class BatchedSubKernelSVCLoss(SVCLoss):
         """
         super().__init__(**kwargs)
         # Split data into batches
-        self.data=data
-        self.labels=labels
+        self.data = data
+        self.labels = labels
         self.sub_kernel_size = sub_kernel_size
         self.batch_size = batch_size
         self.encoder = encoder
@@ -173,13 +174,11 @@ class BatchedSubKernelSVCLoss(SVCLoss):
 
         self.unique_labels, self.label_counts = np.unique(labels, return_counts=True)
         self.class_idxs = {
-            label: np.flatnonzero(self.labels == label)
-            for label in self.unique_labels
+            label: np.flatnonzero(self.labels == label) for label in self.unique_labels
         }
 
         self.unused_idxs = {
-            label: np.random.permutation(idxs).tolist()
-            for label, idxs in self.class_idxs.items()
+            label: np.random.permutation(idxs).tolist() for label, idxs in self.class_idxs.items()
         }
 
         label_freqs = self.label_counts / np.sum(self.label_counts)
@@ -195,18 +194,18 @@ class BatchedSubKernelSVCLoss(SVCLoss):
         subkernels = []
 
         for _ in range(self.batch_size):
-            subkernel_idxs=[]
+            subkernel_idxs = []
 
             for label, num_samples in zip(self.unique_labels, self.sample_counts):
                 for _ in range(num_samples):
                     if not self.unused_idxs[label]:
-                        self.unused_idxs[label] = np.random.permutation(self.class_idxs[label]).tolist()
+                        self.unused_idxs[label] = np.random.permutation(
+                            self.class_idxs[label]
+                        ).tolist()
 
                     available_idxs = [
-                        idx for idx
-                        in self.unused_idxs[label]
-                        if idx not in subkernel_idxs
-                    ] # prevents sampling the same point twice in the same kernel
+                        idx for idx in self.unused_idxs[label] if idx not in subkernel_idxs
+                    ]  # prevents sampling the same point twice in the same kernel
 
                     idx = np.random.choice(available_idxs)
                     subkernel_idxs.append(idx)
@@ -217,7 +216,6 @@ class BatchedSubKernelSVCLoss(SVCLoss):
 
         return subkernels
 
-
     def evaluate(
         self,
         parameters: Sequence[float],
@@ -226,7 +224,7 @@ class BatchedSubKernelSVCLoss(SVCLoss):
         labels: np.ndarray,
     ) -> float:
         """
-        Wrapper function for loss evaluation with batches of sun kernels. 
+        Wrapper function for loss evaluation with batches of sun kernels.
         If sub_kernel_size is None, it will execute SVCLoss() on full dataset.
 
         Args:
@@ -249,7 +247,6 @@ class BatchedSubKernelSVCLoss(SVCLoss):
                 self.loss_arr.append(loss)
                 return loss
 
-
         subkernel_batches = self._batch_subkernels()
 
         # Evaluate the loss for each batch and accumulate the total loss
@@ -263,7 +260,9 @@ class BatchedSubKernelSVCLoss(SVCLoss):
                 subkernel_data = self.encoder.encode(subkernel_data)
             else:
                 variational_params = parameters
-            loss = super().evaluate(variational_params, quantum_kernel, subkernel_data, subkernel_labels)
+            loss = super().evaluate(
+                variational_params, quantum_kernel, subkernel_data, subkernel_labels
+            )
             total_loss += loss
 
         param_loss = total_loss / self.batch_size
