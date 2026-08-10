@@ -11,6 +11,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""The Covariant Feature Map circuit."""
+
 from typing import Callable, Union, List, Dict, Any
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
@@ -46,7 +48,8 @@ class CovariantFeatureMap(QuantumCircuit):
         Args:
             feature_dimension (int): The number of features.
             entanglement (str, List, Callable): Specifies the entanglement scheme.
-            include_training_parameters (bool): If True, includes trainable parameters, otherwise excludes them.
+            include_training_parameters (bool): If True, includes trainable parameters, 
+            otherwise excludes them.
 
         Returns:
             None
@@ -62,25 +65,24 @@ class CovariantFeatureMap(QuantumCircuit):
         self.include_training_parameters = include_training_parameters
         self.training_parameters = None
         self.input_parameters = None
-
         num_qubits = feature_dimension // 2
         super().__init__(num_qubits, name=name)
-
         self._generate_feature_map()
 
     @property
     def settings(self) -> Dict[str, Any]:
-        training_parameters_list = [param for param in self.training_parameters]
-        input_parameters_list = [param for param in self.input_parameters]
+        """Return the feature map settings."""
         return {
             "feature_dimension": self.feature_dimension,
             "entanglement": self.entanglement,
             "include_training_parameters": self.include_training_parameters,
-            "training_parameters": training_parameters_list,
-            "input_parameters": input_parameters_list,
+            "training_parameters": list(self.training_parameters),
+            "input_parameters": list(self.input_parameters),
         }
 
     def _generate_feature_map(self):
+        """Generate the covariant feature map circuit."""
+
         # If no entanglement scheme specified, use linear entanglement
         if self.entanglement is None:
             self.entanglement = [[i, i + 1] for i in range(self.num_qubits - 1)]

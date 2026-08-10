@@ -55,7 +55,15 @@ from .loss_functions import (
     CrossEntropyLoss,
 )
 
-from .kernel_loss_functions import KernelLoss, SVCLoss, BatchedSubKernelSVCLoss, SVRLoss, MSRLoss, MARLoss, HuberLoss
+from .kernel_loss_functions import (
+    KernelLoss,
+    SVCLoss,
+    BatchedSubKernelSVCLoss,
+    SVRLoss,
+    MSRLoss,
+    MARLoss,
+    HuberLoss,
+)
 
 __all__ = [
     "Loss",
