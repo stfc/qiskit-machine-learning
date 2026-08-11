@@ -95,6 +95,7 @@ confint
 cong
 contravariance
 convolutional
+cosets
 cpu
 creg
 crossentropyloss
@@ -186,6 +187,7 @@ fi
 fidelities
 fidelity
 fidelityquantumkernel
+fiducial
 filippo
 fletcher
 fm
@@ -260,6 +262,7 @@ instantiations
 integrations
 interatomic
 interdependencies
+intra
 ints
 iprint
 iqft
@@ -404,6 +407,7 @@ optimizer's
 optimizers
 orthonormal
 otimes
+overfit
 overfits
 overfitted
 overfitting
@@ -581,6 +585,7 @@ subcircuits
 subclassed
 subclasses
 subcomponents
+subgraph
 subplex
 submodules
 subobjects
@@ -628,6 +633,7 @@ unitaries
 univariate
 uno
 unscaled
+unselected
 unsymmetric
 utf
 utils

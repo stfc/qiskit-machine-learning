@@ -135,8 +135,8 @@ class BatchedSubKernelSVCLoss(SVCLoss):
     Each evaluation samples ``batch_size`` number of sub-kernels with each sub-kernel containing
     ``sub_kernel_size`` number of data points. Each sub-kernel aims to preserve the same class
     ratio as the full dataset while still ensuring each class is represented within a kernel at
-    all times. Data points are sampled without replacement within each class group seperately and
-    once all data points have been sampled within an indiviudal group then that individual group
+    all times. Data points are sampled without replacement within each class group separately and
+    once all data points have been sampled within an individual group then that individual group
     is reset.
 
     See https://arxiv.org/abs/2401.02879 for further details.
