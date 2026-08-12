@@ -138,7 +138,7 @@ class BaseStateFidelity(ABC):
         """
         raise NotImplementedError
 
-    def _check_param_name(self, param_name, circuit_param_names):
+    def _check_param_name(self, param_name: str, circuit_param_names: list[str]) -> str:
         """
         Check proposed parameter name is unique. This avoids a known parameter deserialization bug
         present in qiskit versions < 2.1.
