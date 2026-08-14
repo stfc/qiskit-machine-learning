@@ -138,19 +138,6 @@ class BaseStateFidelity(ABC):
         """
         raise NotImplementedError
 
-    def _check_param_name(self, param_name: str, circuit_param_names: list[str]) -> str:
-        """
-        Check proposed parameter name is unique. This avoids a known parameter deserialization bug
-        present in qiskit versions < 2.1.
-        See https://github.com/Qiskit/qiskit/pull/13727 for more information.
-        """
-        i = 0
-        while any(name.startswith(f"{param_name}[") for name in circuit_param_names):
-            param_name = f"{param_name}_{i}"
-            i += 1
-
-        return param_name
-
     def _construct_circuits(
         self,
         circuits_1: QuantumCircuit | Sequence[QuantumCircuit],
@@ -198,19 +185,9 @@ class BaseStateFidelity(ABC):
                 # re-parametrize input circuits
                 # TODO: make smarter checks to avoid unnecessary re-parametrizations
 
-                circuit_param_names = [param.name for param in circuit_1.parameters] + [
-                    param.name for param in circuit_2.parameters
-                ]
-
-                param_1_name = "x_fidelity"
-                param_1_name = self._check_param_name(param_1_name, circuit_param_names)
-
-                param_2_name = "y_fidelity"
-                param_2_name = self._check_param_name(param_2_name, circuit_param_names)
-
-                parameters_1 = ParameterVector(param_1_name, circuit_1.num_parameters)
+                parameters_1 = ParameterVector("x_fidelity", circuit_1.num_parameters)
                 parametrized_circuit_1 = circuit_1.assign_parameters(parameters_1)
-                parameters_2 = ParameterVector(param_2_name, circuit_2.num_parameters)
+                parameters_2 = ParameterVector("y_fidelity", circuit_2.num_parameters)
                 parametrized_circuit_2 = circuit_2.assign_parameters(parameters_2)
 
                 circuit = self.create_fidelity_circuit(
