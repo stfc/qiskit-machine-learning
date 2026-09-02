@@ -55,7 +55,7 @@ class TrainableKernel(BaseKernel, ABC):
         """
         Fix the training parameters to numerical values.
         """
-        if not isinstance(parameter_values, dict):
+        if not isinstance(parameter_values, Mapping):
             self._check_trainable_parameters(parameter_values)
             self._parameter_dict.update(
                 {
@@ -94,7 +94,9 @@ class TrainableKernel(BaseKernel, ABC):
         """
         return len(self._training_parameters)
 
-    def _parameter_array(self, x_vec: np.ndarray, x_parameters: np.ndarray | None = None) -> np.ndarray:
+    def _parameter_array(
+        self, x_vec: np.ndarray, x_parameters: np.ndarray | None = None
+    ) -> np.ndarray:
         """
         Combines the feature values and the trainable parameters into one array.
 
@@ -105,7 +107,7 @@ class TrainableKernel(BaseKernel, ABC):
         Returns:
             The combined feature and training parameter values.
         """
-        
+
         if x_parameters is None:
             self._check_trainable_parameters()
             parameter_dict = self._parameter_dict.copy()
@@ -125,7 +127,9 @@ class TrainableKernel(BaseKernel, ABC):
 
         return full_array
 
-    def _check_trainable_parameters(self,  parameter_values: Sequence[ParameterValueType] | np.ndarray | None = None) -> None:
+    def _check_trainable_parameters(
+        self, parameter_values: Sequence[ParameterValueType] | np.ndarray | None = None
+    ) -> None:
         if parameter_values is None:
             for param in self._training_parameters:
                 if self._parameter_dict[param] is None:

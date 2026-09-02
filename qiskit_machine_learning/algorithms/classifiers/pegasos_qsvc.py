@@ -190,7 +190,6 @@ class PegasosQSVC(ClassifierMixin, SerializableModelMixin):
             # for every step, a random index (determining a random datum) is fixed
             i = int(algorithm_globals.random.integers(0, len(y)))
             self._update_step(i, X, y, step)
-            
 
         self.fit_status_ = PegasosQSVC.FITTED
 
@@ -201,7 +200,7 @@ class PegasosQSVC(ClassifierMixin, SerializableModelMixin):
     def _update_step(self, index: int, X: np.ndarray, y: np.ndarray, step: int) -> None:
         """
         Implements an update step for the fit method.
-        
+
         Args:
             index: Index of the selected training sample.
             X: Training features.
@@ -209,11 +208,10 @@ class PegasosQSVC(ClassifierMixin, SerializableModelMixin):
             step: Current training step.
         """
         value = self._compute_weighted_kernel_sum(index, X, training=True)
-        
+
         if (self._label_map[y[index]] * self.C / step) * value < 1:
             # only way for a component of alpha to become non zero
             self._alphas[index] = self._alphas.get(index, 0) + 1
-
 
     # pylint: disable=invalid-name
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -310,7 +308,9 @@ class PegasosQSVC(ClassifierMixin, SerializableModelMixin):
 
         return values
 
-    def _evaluate_kernel(self, x: np.ndarray, x_supp: np.ndarray, support_indices: list[int]) -> np.ndarray:
+    def _evaluate_kernel(
+        self, x: np.ndarray, x_supp: np.ndarray, support_indices: list[int]
+    ) -> np.ndarray:
         """
         Evaluate the kernel function for a single data point and the support vectors.
 

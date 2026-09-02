@@ -99,23 +99,23 @@ class TrainableFidelityStatevectorKernel(TrainableKernel, FidelityStatevectorKer
         self._parameter_dict = {parameter: None for parameter in self.feature_map.parameters}
 
     def _evaluate(
-            self, 
-            x_vec: np.ndarray, 
-            y_vec: np.ndarray, 
-            is_symmetric: bool, 
-            x_parameters: np.ndarray | None = None, 
-            y_parameters: np.ndarray | None = None
+        self,
+        x_vec: np.ndarray,
+        y_vec: np.ndarray,
+        is_symmetric: bool,
+        x_parameters: np.ndarray | None = None,
+        y_parameters: np.ndarray | None = None,
     ):
         new_x_vec = self._parameter_array(x_vec, x_parameters)
         new_y_vec = self._parameter_array(y_vec, y_parameters)
         return super()._evaluate(new_x_vec, new_y_vec, is_symmetric)
 
     def evaluate(
-            self, 
-            x_vec: np.ndarray, 
-            y_vec: np.ndarray | None = None,
-            x_parameters: np.ndarray | None = None, 
-            y_parameters: np.ndarray | None = None,
+        self,
+        x_vec: np.ndarray,
+        y_vec: np.ndarray | None = None,
+        x_parameters: np.ndarray | None = None,
+        y_parameters: np.ndarray | None = None,
     ) -> np.ndarray:
         """
         Evaluate the kernel matrix.
@@ -141,7 +141,9 @@ class TrainableFidelityStatevectorKernel(TrainableKernel, FidelityStatevectorKer
         x_parameter_values = self.parameter_values if x_parameters is None else x_parameters
         y_parameter_values = self.parameter_values if y_parameters is None else y_parameters
 
-        is_symmetric = np.array_equal(x_vec, y_vec) and np.array_equal(x_parameter_values, y_parameter_values)
+        is_symmetric = np.array_equal(x_vec, y_vec) and np.array_equal(
+            x_parameter_values, y_parameter_values
+        )
 
         return self._evaluate(
             x_vec,
