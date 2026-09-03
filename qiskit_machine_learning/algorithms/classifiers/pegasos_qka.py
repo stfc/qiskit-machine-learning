@@ -38,15 +38,16 @@ class PegasosQKA(PegasosQSVC):
         pegasos_qka.predict(sample_test)
 
     **References**
-        [1]: G. Gentinetta, D. Sutter, C. Zoufal, B. Fuller and S. Woerner,
-        Quantum Kernel Alignment with Stochastic Gradient Descent
+        [1]: Quantum Kernel Alignment with Stochastic Gradient Descent
         <https://ieeexplore.ieee.org/document/10313634>`_
 
     """
 
     def __init__(
         self,
-        quantum_kernel=TrainableFidelityQuantumKernel | TrainableFidelityStatevectorKernel,
+        quantum_kernel: (
+            TrainableFidelityQuantumKernel | TrainableFidelityStatevectorKernel | None
+        ) = None,
         C: float = 1000.0,
         num_steps: Optional[int] = None,
         seed: Optional[int] = None,
@@ -74,7 +75,7 @@ class PegasosQKA(PegasosQSVC):
                 )
 
         self._quantum_kernel: (
-            TrainableFidelityQuantumKernel | TrainableFidelityStatevectorKernel
+            TrainableFidelityQuantumKernel | TrainableFidelityStatevectorKernel | None
         ) = quantum_kernel
         self._support_thetas: dict[int, list[np.ndarray]] = {}
         self._left_theta = self._theta.copy()
