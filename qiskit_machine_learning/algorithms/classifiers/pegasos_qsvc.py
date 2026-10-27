@@ -309,7 +309,7 @@ class PegasosQSVC(ClassifierMixin, SerializableModelMixin):
 
         return values
 
-     def _evaluate_kernel(
+    def _evaluate_kernel(
         self, x: np.ndarray, x_supp: np.ndarray, support_indices: list[int]
     ) -> np.ndarray:
         """
