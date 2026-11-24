@@ -88,15 +88,24 @@ else:
 CHAR_LIMIT = 26
 
 
-def _get_einsum_signature(n_dimensions: int, for_weights: bool = False) -> str:
+def _get_einsum_signature(
+    n_dimensions: int, for_weights: bool = False, n_output_dims: int = 1
+) -> str:
     """
     Generate an Einstein summation signature for a given number of dimensions and return type.
 
+    The first operand is the gradient of the loss w.r.t. the network output, with axes
+    ``(*batch, *output)``. The second operand is the network gradient, with axes
+    ``(*batch, *output, n)`` where ``n`` is the number of inputs or weights.
+
     Args:
-        n_dimensions (int): The number of dimensions for the summation.
+        n_dimensions (int): The number of dimensions of the network gradient.
         for_weights (bool): If True, the return signature includes only the
-            last index as the output. If False, the return signature includes
-            all input indices except the last one. Defaults to False.
+            last index as the output. If False, the return signature keeps all
+            batch indices and the last index, summing over the output indices only.
+            Defaults to False.
+        n_output_dims (int): The number of output axes of the network. Only used when
+            ``for_weights`` is False. Defaults to 1.
 
 
     Returns:
@@ -116,7 +125,9 @@ def _get_einsum_signature(n_dimensions: int, for_weights: bool = False) -> str:
     if for_weights:
         return f"{trace[:-1]},{trace:s}->{trace[-1]}"
 
-    return f"{trace[:-1]},{trace:s}->{trace[0] + trace[2:]}"
+    # sum over the output axes only, keep every batch axis plus the last axis
+    batch = trace[: -(n_output_dims + 1)]
+    return f"{trace[:-1]},{trace:s}->{batch + trace[-1]}"
 
 
 @_optionals.HAS_TORCH.require_in_instance
@@ -223,9 +234,7 @@ class _TorchNNFunction(Function):
                 + f" expected input compatible to {neural_network.num_inputs}"
             )
 
-        # ensure same shape for single observations and batch mode
-        if len(grad_output.shape) == 1:
-            grad_output = grad_output.view(1, -1)
+        n_output_dims = len(neural_network.output_shape)
 
         # evaluate QNN gradient
         input_grad, weights_grad = neural_network.backward(
@@ -241,7 +250,7 @@ class _TorchNNFunction(Function):
                     grad_output = grad_output.detach().cpu()
                     grad_coo = COO(
                         grad_output.indices(), grad_output.values(), shape=grad_output.shape
-                    )
+                    ).reshape(tuple(input_grad.shape[:-1]))
 
                     # Takes gradients from previous layer in backward pass (i.e. later layer in
                     # forward pass) j for each observation i in the batch. Multiplies this with
@@ -251,8 +260,7 @@ class _TorchNNFunction(Function):
                     # able to do back-prop in a batched manner.
                     # Pytorch does not support sparse einsum, so we rely on Sparse.
                     # pylint: disable=no-member
-                    n_dimension = max(grad_coo.ndim, input_grad.ndim)
-                    signature = _get_einsum_signature(n_dimension)
+                    signature = _get_einsum_signature(input_grad.ndim, n_output_dims=n_output_dims)
                     input_grad = sparse.einsum(signature, grad_coo, input_grad)
 
                     # return sparse gradients
@@ -269,10 +277,11 @@ class _TorchNNFunction(Function):
                     input_grad = input_grad.todense()
                 input_grad = torch.as_tensor(input_grad, dtype=torch.float)
 
-                # same as above
-                n_dimension = max(grad_output.detach().cpu().ndim, input_grad.ndim)
-                signature = _get_einsum_signature(n_dimension)
-                input_grad = torch.einsum(signature, grad_output.detach().cpu(), input_grad)
+                # same as above, with the output gradient aligned to the leading axes of the
+                # network gradient (batch axes followed by output axes)
+                grad_out = grad_output.detach().cpu().reshape(tuple(input_grad.shape[:-1]))
+                signature = _get_einsum_signature(input_grad.ndim, n_output_dims=n_output_dims)
+                input_grad = torch.einsum(signature, grad_out, input_grad)
 
             # place the resulting tensor to the device where they were stored
             input_grad = input_grad.to(input_data.device)
@@ -286,7 +295,7 @@ class _TorchNNFunction(Function):
                     grad_output = grad_output.detach().cpu()
                     grad_coo = COO(
                         grad_output.indices(), grad_output.values(), shape=grad_output.shape
-                    )
+                    ).reshape(tuple(weights_grad.shape[:-1]))
 
                     # Takes gradients from previous layer in backward pass (i.e. later layer in
                     # forward pass) j for each observation i in the batch. Multiplies this with
@@ -295,8 +304,7 @@ class _TorchNNFunction(Function):
                     # w.r.t. each parameter k. The weights' dimension is independent of the
                     # batch size.
                     # pylint: disable=no-member
-                    n_dimension = max(grad_coo.ndim, weights_grad.ndim)
-                    signature = _get_einsum_signature(n_dimension, for_weights=True)
+                    signature = _get_einsum_signature(weights_grad.ndim, for_weights=True)
                     weights_grad = sparse.einsum(signature, grad_coo, weights_grad)
 
                     # return sparse gradients
@@ -312,9 +320,9 @@ class _TorchNNFunction(Function):
                     weights_grad = weights_grad.todense()
                 weights_grad = torch.as_tensor(weights_grad, dtype=torch.float)
                 # same as above
-                n_dimension = max(grad_output.detach().cpu().ndim, weights_grad.ndim)
-                signature = _get_einsum_signature(n_dimension, for_weights=True)
-                weights_grad = torch.einsum(signature, grad_output.detach().cpu(), weights_grad)
+                grad_out = grad_output.detach().cpu().reshape(tuple(weights_grad.shape[:-1]))
+                signature = _get_einsum_signature(weights_grad.ndim, for_weights=True)
+                weights_grad = torch.einsum(signature, grad_out, weights_grad)
 
             # place the resulting tensor to the device where they were stored
             weights_grad = weights_grad.to(weights.device)

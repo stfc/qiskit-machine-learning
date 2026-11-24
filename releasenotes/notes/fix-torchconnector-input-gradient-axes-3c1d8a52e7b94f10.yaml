@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed :class:`~qiskit_machine_learning.connectors.TorchConnector` computing wrong input
+    gradients in the backward pass when the input has more than one batch axis, or when the
+    network has a multi-dimensional output. The gradient contraction summed over a batch axis
+    instead of the output axes. This went unnoticed when the batch and output sizes were equal,
+    and raised shape errors otherwise.

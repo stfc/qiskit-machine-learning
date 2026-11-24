@@ -254,6 +254,47 @@ class TestTorchConnector(TestTorch):
         self._validate_backward(model)
         self._validate_backward_automatically(model)
 
+    @data((1,), (1, 1), (3, 1), (1, 2, 1), (2, 3, 1), (4, 2, 3, 1))
+    def test_input_gradient_contracts_output_axes(self, input_shape):
+        """Input gradients must sum over the output axes only, never over batch axes."""
+        import torch
+        from qiskit.circuit import Parameter
+
+        x_param, w_param = Parameter("x"), Parameter("w")
+        circuit = QuantumCircuit(1)
+        circuit.ry(x_param, 0)
+        circuit.rx(w_param, 0)
+        qnn = EstimatorQNN(
+            estimator=Estimator(default_precision=0.01, seed=123),
+            circuit=circuit,
+            # two observables, i.e. an output dimension that differs from most batch sizes
+            observables=[SparsePauliOp("Z"), SparsePauliOp("X")],
+            input_params=[x_param],
+            weight_params=[w_param],
+            input_gradients=True,
+        )
+        model = TorchConnector(qnn, initial_weights=[0.3])
+
+        input_data = torch.rand(input_shape, requires_grad=True)
+        output = model(input_data)
+        grad_output = torch.rand(output.shape)
+        output.backward(grad_output)
+
+        weights = model.weight.detach().numpy()  # pylint: disable=not-callable
+        input_grad, _ = qnn.backward(input_data.detach().numpy(), weights)
+        input_grad = np.asarray(input_grad).reshape((*grad_output.shape, qnn.num_inputs))
+        # sum over the (single) output axis, keep every batch axis
+        expected = np.sum(grad_output.numpy()[..., np.newaxis] * input_grad, axis=-2)
+
+        np.testing.assert_allclose(input_data.grad.numpy(), expected, atol=1e-5)
+
+    def test_einsum_signature_output_axes(self):
+        """Test that the signature sums over the output axes only."""
+        self.assertEqual(_get_einsum_signature(3), "ab,abc->ac")
+        self.assertEqual(_get_einsum_signature(4), "abc,abcd->abd")
+        self.assertEqual(_get_einsum_signature(4, n_output_dims=2), "abc,abcd->ad")
+        self.assertEqual(_get_einsum_signature(4, for_weights=True), "abc,abcd->d")
+
     def _create_convolutional_layer(
         self, input_channel: int, output_channel: int, num_qubits: int, num_weight: int
     ):
